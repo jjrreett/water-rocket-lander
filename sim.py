@@ -1,7 +1,9 @@
+import multiprocessing
+
 import matplotlib.pyplot as plt
 import numpy as np
 from rich import print
-from scipy.integrate import solve_ivp
+from scipy.integrate import solve_ivp, RK45
 from tqdm import tqdm
 
 from solver import RK4
@@ -35,7 +37,7 @@ dry_mass = 1 * kg
 def water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass):
     initial_water_volume = y0[2] / rho_water
 
-    def odes(t, y):
+    def update_equation(t, y):
         height, velocity, mass_water, pressure = y
 
         if mass_water > 0:
@@ -60,20 +62,24 @@ def water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass):
     hit_ground.terminal = True
     hit_ground.direction = -1
 
-    # Initial conditions and time span
-    t0 = 0
-    t_bound = 2
-    h = 0.05
-
     sol = solve_ivp(
-        odes,
-        [t0, t_bound],
+        update_equation,
+        [0, 2],
         y0,
         method=RK4,
         events=hit_ground,
-        # dense_output=True,
-        h=h,
+        h=0.1,
     )
+
+
+    # sol = solve_ivp(
+    #     update_equation,
+    #     [0, 2],
+    #     y0,
+    #     method=RK45,
+    #     events=hit_ground,
+    #     dense_output=True
+    # )
 
     ts = sol.t
     results = sol.y.T
@@ -85,7 +91,7 @@ def water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass):
         results = results[: idx + 1, :]
         ts = ts[: idx + 1]
 
-    score = abs(results[-1, 2])  # Assuming velocity score or similar
+    score = abs(results[-1, 1]) 
     return score, ts, results
 
 
@@ -142,9 +148,6 @@ def plot_trajectory_generator():
 
     plt.tight_layout()
     plt.show()
-
-
-import multiprocessing
 
 
 def worker(num_sims):
