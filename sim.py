@@ -95,15 +95,16 @@ def water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass):
     return score, ts, results
 
 
-def run_monte_carlo(num_simulations):
+def run_monte_carlo(num_simulations, seed=0):
+    rng = np.random.default_rng(seed)
     results = []
     for _ in tqdm(range(num_simulations)):
         # Generate initial conditions
-        height = np.random.normal(10, 2) * m  # height in meters
+        height = rng.normal(10, 2) * m  # height in meters
         v_zero_height = 25 * m  # reference height for zero velocity calculation
         velocity = -np.sqrt(max(0, 2 * g * (v_zero_height - height)))
         water_mass = 1 * kg
-        pressure = np.random.normal(90, 10) * psi
+        pressure = rng.normal(90, 10) * psi
 
         y0 = np.array([height, velocity, water_mass, pressure])
 
@@ -115,6 +116,29 @@ def run_monte_carlo(num_simulations):
     results.sort(key=lambda x: x[0])
     return results
 
+
+def run_all_single(total_sims, keep_n_best=10, seed=0):
+    """Run the monte carlo simulations in single threaded"""
+    results = run_monte_carlo(total_sims, seed=seed)
+    results.sort(key=lambda x: x[0])
+    return results[:keep_n_best]
+
+def run_all_multi(total_sims, num_cores=8, keep_n_best=10, seed=0):
+    """Run the monte carlo simulations using multiprocessing pool"""
+
+    batch_size = total_sims // num_cores
+    num_processes = total_sims // batch_size
+
+    seeds = [seed + i for i in range(num_processes)]
+
+
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        # Each process gets batch_size simulations to run
+        results = pool.starmap(run_all_single, [(batch_size, keep_n_best, seed) for seed in seeds])
+
+    all_sims = [sim for sublist in results for sim in sublist]
+    all_sims.sort(key=lambda x: x[0])
+    return all_sims[:keep_n_best]
 
 def plot_trajectory_generator():
     """Generator for plotting trajectories and velocity profiles of the simulation."""
@@ -149,30 +173,6 @@ def plot_trajectory_generator():
     plt.tight_layout()
     plt.show()
 
-
-def worker(num_sims):
-    return run_monte_carlo(num_sims)[:10]
-
-
-def run_all_multi(total_sims, num_cores=8):
-    batch_size = total_sims // num_cores
-    num_processes = total_sims // batch_size
-
-    with multiprocessing.Pool(processes=num_processes) as pool:
-        # Each process gets batch_size simulations to run
-        results = pool.map(worker, [batch_size] * num_processes)
-
-    all_sims = [sim for sublist in results for sim in sublist]
-
-    # all_sims = run_monte_carlo(100_000)
-    best_sims = all_sims[:10]
-    return best_sims
-
-
-def run_all_single(total_sims):
-    run_monte_carlo(total_sims)[:10]
-
-
 def main():
     best_sims = run_all_multi(100_000)
 
@@ -180,7 +180,6 @@ def main():
     next(plot_gen)  # Initialize the generator
 
     for sim in best_sims:
-        print(sim)
         score, y0 = sim
         score, ts, results = water_rocket_simulation(
             y0, area_nozzle, air_fill, dry_mass
@@ -189,7 +188,7 @@ def main():
     try:
         plot_gen.send(None)
     except StopIteration:
-        ...
+        pass
 
 
 if __name__ == "__main__":
