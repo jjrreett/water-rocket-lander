@@ -26,45 +26,46 @@ rho_water = 1000 * kg / m3
 
 # constant params
 area_nozzle = 3.14 * (6 * mm) ** 2 / 4
+vol_total = 2 * liter
 
 # varying params
 pressure_init = 100 * psi
-water_fill = 1 * liter
-air_fill = 1 * liter
-dry_mass = 1 * kg
+vol_water_0 = 1 * liter
+m_dry = 0.5 * kg
+m_water_0 = vol_water_0 / rho_water
 
-
-def water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass):
-    initial_water_volume = y0[2] / rho_water
-
+def water_rocket_simulation(y0, area_nozzle, m_dry):
     def update_equation(t, y):
-        height, velocity, mass_water, pressure = y
+        height, velocity, vol_water, pressure = y
+        dheight = velocity
 
-        if mass_water > 0:
-            water_flow = area_nozzle * np.sqrt(2 * pressure / rho_water)
-            dm_dt = rho_water * water_flow
-            water_volume = mass_water / rho_water
-            air_volume = air_fill + initial_water_volume - water_volume
-            dpressure = (-gamma * pressure / air_volume) * (water_flow / rho_water)
-            thrust = dm_dt * np.sqrt(2 * pressure / rho_water)
-            acceleration = (thrust / (mass_water + dry_mass)) - g
-        else:
-            dm_dt = 0
-            dpressure = 0
-            thrust = 0
-            acceleration = -g
+        # TODO maybe update the state variables to track the volume of water
 
-        return [velocity, acceleration, -dm_dt, dpressure]
+        if vol_water <= 0:
+            return [dheight, -g, 0, 0]
+        
+        m_water = vol_water * rho_water
+        vol_air = vol_total - vol_water
+
+        v_exit = np.sqrt(2 * pressure / rho_water) 
+        dvol_water = -area_nozzle * v_exit
+        dm_water = rho_water * dvol_water
+        dpressure = gamma * pressure / vol_air * dvol_water 
+        thrust = -dm_water * v_exit 
+        dvelocity = (thrust / (m_dry + m_water)) - g
+
+
+        return [dheight, dvelocity, dvol_water, dpressure]
 
     def hit_ground(t, y):
         return y[0]  # Ground event when height is zero
-
+    
     hit_ground.terminal = True
     hit_ground.direction = -1
 
     sol = solve_ivp(
         update_equation,
-        [0, 2],
+        [0, 5],
         y0,
         method=RK4,
         events=hit_ground,
@@ -95,19 +96,29 @@ def water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass):
 
 def run_monte_carlo(num_simulations, seed=0):
     rng = np.random.default_rng(seed)
+    
+    pressure = 120 * psi / 2
+    m_water = rho_water * vol_water_0
+    dm_water = rho_water * area_nozzle * np.sqrt(2 * pressure / rho_water)
+    thrust = dm_water * np.sqrt(2 * pressure / rho_water)
+    delta_v = thrust/dm_water * np.log( (m_dry + m_water) / m_dry ) - g * m_water/dm_water
+    m0 = m_water + m_dry 
+    t = m_water / dm_water
+    h0 = delta_v*t - g/2*t**2 + thrust/dm_water * ((m0 - dm_water*t)/dm_water * np.log((m0 - dm_water*t)/m0) + t)
+
     results = []
     for _ in tqdm(range(num_simulations)):
         # Generate initial conditions
-        height = rng.normal(10, 2) * m  # height in meters
-        v_zero_height = 25 * m  # reference height for zero velocity calculation
-        velocity = -np.sqrt(max(0, 2 * g * (v_zero_height - height)))
-        water_mass = 1 * kg
-        pressure = rng.normal(90, 10) * psi
+        # v_zero_height = 25 * m  # reference height for zero velocity calculation
+        # velocity = -np.sqrt(max(0, 2 * g * (v_zero_height - height)))
 
-        y0 = np.array([height, velocity, water_mass, pressure])
+        height = rng.normal(5, 1)  # height in meters
+        velocity = rng.normal(-delta_v, delta_v * 0.5)
+        pressure = 100 * psi
+        y0 = np.array([height, velocity, vol_water_0, pressure])
 
         # Simulate using the generated initial conditions
-        score, _, _ = water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass)
+        score, _, _ = water_rocket_simulation(y0, area_nozzle, m_dry)
         results.append((score, y0))
 
     # Sort results by score
@@ -147,30 +158,44 @@ def plot_trajectories(datas):
     ax[1].set_xlabel("Time (s)")
     ax[1].set_ylabel("Velocity (m/s)")
 
-    ax[2].set_title("Pressure vs. Time")
-    ax[2].set_xlabel("Time (s)")
-    ax[2].set_ylabel("Pressure (psi)")
+    ax[2].set_title("Initial Height vs. Initial Velocity")
+    ax[2].set_xlabel("Height (m)")
+    ax[2].set_ylabel("Velocity (m/s)")
     
     for data in datas:
         label, ts, results = data
         ax[0].plot(ts, results[:, 0], label=results[-1, 0], alpha=0.3)
         ax[1].plot(ts, results[:, 1], label=results[-1, 1], alpha=0.3)
-        ax[2].plot(ts, results[:, 3] / psi, label=results[-1, 3], alpha=0.3)
 
-        ax[0].legend()
-        ax[1].legend()
-        ax[2].legend()
+    ax[2].scatter([data[2][0, 0] for data in datas], [data[2][0, 1] for data in datas], alpha=0.3)
+
+    # ax[0].legend()
+    ax[1].legend()
+    # ax[2].legend()
 
     plt.tight_layout()
     plt.show()
 
 def main():
-    best_sims = run_all_multi(10_000)
+    pressure = 100 * psi / 2
+    m_water = rho_water * vol_water_0
+    dm_water = rho_water * area_nozzle * np.sqrt(2 * pressure / rho_water)
+    thrust = dm_water * np.sqrt(2 * pressure / rho_water)
+    delta_v = thrust/dm_water * np.log( (m_dry + m_water) / m_dry ) - g * m_water/dm_water
+    m0 = m_water + m_dry 
+    t = m_water / dm_water
+    h0 = delta_v*t - g/2*t**2 + thrust/dm_water * ((m0 - dm_water*t)/dm_water * np.log((m0 - dm_water*t)/m0) + t)
+
+    print(delta_v)
+    print(h0)
+
+    best_sims = run_all_multi(100_000, keep_n_best=25)
     data = [
-        water_rocket_simulation(sim[1], area_nozzle, air_fill, dry_mass) for sim in best_sims
+        water_rocket_simulation(sim[1], area_nozzle, m_dry) for sim in best_sims
     ]
     plot_trajectories(data)
 
 
 if __name__ == "__main__":
     main()
+
