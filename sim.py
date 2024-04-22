@@ -43,62 +43,93 @@ def water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass):
             air_volume = air_fill + initial_water_volume - water_volume
             dpressure = (-gamma * pressure / air_volume) * (water_flow / rho_water)
             thrust = dm_dt * np.sqrt(2 * pressure / rho_water)
+            acceleration = (thrust / (mass_water + dry_mass)) - g
         else:
             dm_dt = 0
             dpressure = 0
             thrust = 0
+            acceleration = -g
 
-        acceleration = (thrust - (mass_water + dry_mass) * g) / (mass_water + dry_mass)
         return [velocity, acceleration, -dm_dt, dpressure]
+
+    def hit_ground(t, y):
+        return y[0]  # Ground event when height is zero
+
+    hit_ground.terminal = True
+    hit_ground.direction = -1
 
     # Initial conditions and time span
     t0 = 0
-    t_bound = 5
-    h = 0.1
+    t_bound = 2
+    h = 0.05
 
     # Pre-allocate arrays
     num_steps = int((t_bound - t0) / h) + 1  # Calculate number of steps
-    results = np.zeros((num_steps + 1, len(y0) + 1))  # Additional column for time
+    ts = np.zeros((num_steps + 1))
+    results = np.zeros((num_steps + 1, len(y0)))
 
     # Initialize the first row of results
-    results[0, 0] = t0  # time
-    results[0, 1:] = y0  # initial state
+    ts[0] = t0  # time
+    results[0, :] = y0  # initial state
 
     # Create the RK4 solver instance
-    solver = RK4(odes, t0, y0, t_bound, h=0.05)
-
+    solver = RK4(odes, t0, y0, t_bound, h=h)
     i = 1
     while solver.status == "running" and solver.t < t_bound:
         message, t_next, y_next = solver._step_impl()
-        results[i, 0] = t_next
-        results[i, 1:] = y_next
-        if y_next[0] < 0:
-            break  # Stop simulation if the rocket crashes
-        if y_next[2] < 0:
-            break  # Stop simulation when out of fuel
+        ts[i] = t_next
+        results[i, :] = y_next
+        if y_next[0] <= 0:
+            break  # Stop simulation if the rocket hit the ground
         i += 1
 
     # Trim results array to actual number of steps computed
+    ts = ts[:i]
     results = results[:i, :]
 
-    score = results[-1, 1] ** 2 + results[-1, 2] ** 2
-    return score, results
+    score = abs(results[-1, 1])
+    return score, ts, results
+
+    # from scipy.integrate import solve_ivp
+
+    # sol = solve_ivp(
+    #     odes,
+    #     [t0, t_bound],
+    #     y0,
+    #     method="RK45",
+    #     events=hit_ground,
+    #     # dense_output=True,
+    # )
+
+    # ts = sol.t
+    # results = sol.y.T
+
+    # # Check if the simulation ended because of hitting the ground
+    # if sol.status == 1:
+    #     # Trim the results at the event
+    #     idx = np.where(ts >= sol.t_events[0][0])[0][0]
+    #     results = results[: idx + 1, :]
+    #     ts = ts[: idx + 1]
+
+    # score = abs(results[-1, 2])  # Assuming velocity score or similar
+    # rs = np.concatenate((ts, results))
+    return score, rs
 
 
 def run_monte_carlo(num_simulations):
     results = []
     for _ in tqdm(range(num_simulations)):
         # Generate initial conditions
-        height = np.random.normal(13, 2) * m  # height in meters
-        v_zero_height = 30 * m  # reference height for zero velocity calculation
+        height = np.random.normal(10, 2) * m  # height in meters
+        v_zero_height = 25 * m  # reference height for zero velocity calculation
         velocity = -np.sqrt(max(0, 2 * g * (v_zero_height - height)))
         water_mass = 1 * kg
-        pressure = np.random.normal(100, 10) * psi
+        pressure = np.random.normal(90, 10) * psi
 
         y0 = np.array([height, velocity, water_mass, pressure])
 
         # Simulate using the generated initial conditions
-        score, _ = water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass)
+        score, _, _ = water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass)
         results.append((score, y0))
 
     # Sort results by score
@@ -127,10 +158,10 @@ def plot_trajectory_generator():
         if data is None:  # Check for termination signal
             break  # Exit loop and show the plot
 
-        label, results = data
-        ax[0].plot(results[:, 0], results[:, 1], label=results[-1, 1], alpha=0.3)
-        ax[1].plot(results[:, 0], results[:, 2], label=results[-1, 2], alpha=0.3)
-        ax[2].plot(results[:, 0], results[:, 4] / psi, label=results[-1, 4], alpha=0.3)
+        label, ts, results = data
+        ax[0].plot(ts, results[:, 0], label=results[-1, 0], alpha=0.3)
+        ax[1].plot(ts, results[:, 1], label=results[-1, 1], alpha=0.3)
+        ax[2].plot(ts, results[:, 3] / psi, label=results[-1, 3], alpha=0.3)
 
         ax[0].legend()
         ax[1].legend()
@@ -147,7 +178,8 @@ def worker(num_sims):
     return run_monte_carlo(num_sims)[:10]
 
 
-def run_all_multi(total_sims, batch_size=10_000):
+def run_all_multi(total_sims, num_cores=8):
+    batch_size = total_sims // num_cores
     num_processes = total_sims // batch_size
 
     with multiprocessing.Pool(processes=num_processes) as pool:
@@ -167,7 +199,7 @@ def run_all_single(total_sims):
 
 def main():
 
-    best_sims = run_all_multi(100_000)
+    best_sims = run_all_multi(10_000)
 
     plot_gen = plot_trajectory_generator()
     next(plot_gen)  # Initialize the generator
@@ -175,8 +207,10 @@ def main():
     for sim in best_sims:
         print(sim)
         score, y0 = sim
-        score, results = water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass)
-        plot_gen.send((score, results))
+        score, ts, results = water_rocket_simulation(
+            y0, area_nozzle, air_fill, dry_mass
+        )
+        plot_gen.send((score, ts, results))
     try:
         plot_gen.send(None)
     except StopIteration:
