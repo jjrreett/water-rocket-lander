@@ -71,7 +71,6 @@ def water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass):
         h=0.1,
     )
 
-
     # sol = solve_ivp(
     #     update_equation,
     #     [0, 2],
@@ -94,7 +93,6 @@ def water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass):
     score = abs(results[-1, 1]) 
     return score, ts, results
 
-
 def run_monte_carlo(num_simulations, seed=0):
     rng = np.random.default_rng(seed)
     results = []
@@ -116,7 +114,6 @@ def run_monte_carlo(num_simulations, seed=0):
     results.sort(key=lambda x: x[0])
     return results
 
-
 def run_all_single(total_sims, keep_n_best=10, seed=0):
     """Run the monte carlo simulations in single threaded"""
     results = run_monte_carlo(total_sims, seed=seed)
@@ -128,9 +125,7 @@ def run_all_multi(total_sims, num_cores=8, keep_n_best=10, seed=0):
 
     batch_size = total_sims // num_cores
     num_processes = total_sims // batch_size
-
     seeds = [seed + i for i in range(num_processes)]
-
 
     with multiprocessing.Pool(processes=num_processes) as pool:
         # Each process gets batch_size simulations to run
@@ -140,7 +135,7 @@ def run_all_multi(total_sims, num_cores=8, keep_n_best=10, seed=0):
     all_sims.sort(key=lambda x: x[0])
     return all_sims[:keep_n_best]
 
-def plot_trajectory_generator():
+def plot_trajectories(datas):
     """Generator for plotting trajectories and velocity profiles of the simulation."""
     fig, ax = plt.subplots(1, 3, figsize=(12, 12))
 
@@ -155,12 +150,8 @@ def plot_trajectory_generator():
     ax[2].set_title("Pressure vs. Time")
     ax[2].set_xlabel("Time (s)")
     ax[2].set_ylabel("Pressure (psi)")
-
-    while True:
-        data = yield
-        if data is None:  # Check for termination signal
-            break  # Exit loop and show the plot
-
+    
+    for data in datas:
         label, ts, results = data
         ax[0].plot(ts, results[:, 0], label=results[-1, 0], alpha=0.3)
         ax[1].plot(ts, results[:, 1], label=results[-1, 1], alpha=0.3)
@@ -174,21 +165,11 @@ def plot_trajectory_generator():
     plt.show()
 
 def main():
-    best_sims = run_all_multi(100_000)
-
-    plot_gen = plot_trajectory_generator()
-    next(plot_gen)  # Initialize the generator
-
-    for sim in best_sims:
-        score, y0 = sim
-        score, ts, results = water_rocket_simulation(
-            y0, area_nozzle, air_fill, dry_mass
-        )
-        plot_gen.send((score, ts, results))
-    try:
-        plot_gen.send(None)
-    except StopIteration:
-        pass
+    best_sims = run_all_multi(10_000)
+    data = [
+        water_rocket_simulation(sim[1], area_nozzle, air_fill, dry_mass) for sim in best_sims
+    ]
+    plot_trajectories(data)
 
 
 if __name__ == "__main__":
