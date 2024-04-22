@@ -1,7 +1,9 @@
-import numpy as np
-from tqdm import tqdm
 import matplotlib.pyplot as plt
+import numpy as np
 from rich import print
+from scipy.integrate import solve_ivp
+from tqdm import tqdm
+
 from solver import RK4
 
 # units
@@ -63,57 +65,28 @@ def water_rocket_simulation(y0, area_nozzle, air_fill, dry_mass):
     t_bound = 2
     h = 0.05
 
-    # Pre-allocate arrays
-    num_steps = int((t_bound - t0) / h) + 1  # Calculate number of steps
-    ts = np.zeros((num_steps + 1))
-    results = np.zeros((num_steps + 1, len(y0)))
+    sol = solve_ivp(
+        odes,
+        [t0, t_bound],
+        y0,
+        method=RK4,
+        events=hit_ground,
+        # dense_output=True,
+        h=h,
+    )
 
-    # Initialize the first row of results
-    ts[0] = t0  # time
-    results[0, :] = y0  # initial state
+    ts = sol.t
+    results = sol.y.T
 
-    # Create the RK4 solver instance
-    solver = RK4(odes, t0, y0, t_bound, h=h)
-    i = 1
-    while solver.status == "running" and solver.t < t_bound:
-        message, t_next, y_next = solver._step_impl()
-        ts[i] = t_next
-        results[i, :] = y_next
-        if y_next[0] <= 0:
-            break  # Stop simulation if the rocket hit the ground
-        i += 1
+    # Check if the simulation ended because of hitting the ground
+    if sol.status == 1:
+        # Trim the results at the event
+        idx = np.where(ts >= sol.t_events[0][0])[0][0]
+        results = results[: idx + 1, :]
+        ts = ts[: idx + 1]
 
-    # Trim results array to actual number of steps computed
-    ts = ts[:i]
-    results = results[:i, :]
-
-    score = abs(results[-1, 1])
+    score = abs(results[-1, 2])  # Assuming velocity score or similar
     return score, ts, results
-
-    # from scipy.integrate import solve_ivp
-
-    # sol = solve_ivp(
-    #     odes,
-    #     [t0, t_bound],
-    #     y0,
-    #     method="RK45",
-    #     events=hit_ground,
-    #     # dense_output=True,
-    # )
-
-    # ts = sol.t
-    # results = sol.y.T
-
-    # # Check if the simulation ended because of hitting the ground
-    # if sol.status == 1:
-    #     # Trim the results at the event
-    #     idx = np.where(ts >= sol.t_events[0][0])[0][0]
-    #     results = results[: idx + 1, :]
-    #     ts = ts[: idx + 1]
-
-    # score = abs(results[-1, 2])  # Assuming velocity score or similar
-    # rs = np.concatenate((ts, results))
-    return score, rs
 
 
 def run_monte_carlo(num_simulations):
@@ -198,8 +171,7 @@ def run_all_single(total_sims):
 
 
 def main():
-
-    best_sims = run_all_multi(10_000)
+    best_sims = run_all_multi(100_000)
 
     plot_gen = plot_trajectory_generator()
     next(plot_gen)  # Initialize the generator

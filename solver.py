@@ -1,7 +1,6 @@
 import numpy as np
-from scipy.integrate import OdeSolver
+from scipy.integrate import DenseOutput, OdeSolver
 from scipy.integrate._ivp.common import warn_extraneous
-from scipy.integrate import DenseOutput
 
 
 class SimpleDenseOutput(DenseOutput):
