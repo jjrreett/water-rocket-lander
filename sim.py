@@ -24,22 +24,20 @@ g = 9.81 * m / s2  # acceleration due to gravity, m/s^2
 gamma = 1.4  # adiabatic constant for air
 rho_water = 1000 * kg / m3
 
-# constant params
-area_nozzle = 3.14 * (6 * mm) ** 2 / 4
-vol_total = 2 * liter
+# # constant params
+# area_nozzle = 3.14 * (6 * mm) ** 2 / 4
+# vol_total = 2 * liter
 
 # varying params
-pressure_init = 100 * psi
-vol_water_0 = 1 * liter
-m_dry = 0.5 * kg
-m_water_0 = vol_water_0 / rho_water
+# pressure_init = 100 * psi
+# vol_water_0 = 1 * liter
+# m_dry = 0.5 * kg
+# m_water_0 = vol_water_0 / rho_water
 
-def water_rocket_simulation(y0, area_nozzle, m_dry):
+def water_rocket_simulation(y0, area_nozzle, m_dry, vol_total):
     def update_equation(t, y):
         height, velocity, vol_water, pressure = y
         dheight = velocity
-
-        # TODO maybe update the state variables to track the volume of water
 
         if vol_water <= 0:
             return [dheight, -g, 0, 0]
@@ -72,15 +70,6 @@ def water_rocket_simulation(y0, area_nozzle, m_dry):
         h=0.1,
     )
 
-    # sol = solve_ivp(
-    #     update_equation,
-    #     [0, 2],
-    #     y0,
-    #     method=RK45,
-    #     events=hit_ground,
-    #     dense_output=True
-    # )
-
     ts = sol.t
     results = sol.y.T
 
@@ -94,9 +83,20 @@ def water_rocket_simulation(y0, area_nozzle, m_dry):
     score = abs(results[-1, 1]) 
     return score, ts, results
 
-def run_monte_carlo(num_simulations, seed=0):
-    rng = np.random.default_rng(seed)
-    
+def gen_monte_carlo_params(seed=None):
+    # constant params
+    area_nozzle = 3.14 * (6 * mm) ** 2 / 4
+    vol_total = 2 * liter
+
+    # varying params
+    vol_water_0 = 1 * liter
+    m_dry = 0.5 * kg
+    pressure = 100 * psi
+
+    # Generate initial conditions
+    # v_zero_height = 25 * m  # reference height for zero velocity calculation
+    # velocity = -np.sqrt(max(0, 2 * g * (v_zero_height - height)))
+
     pressure = 120 * psi / 2
     m_water = rho_water * vol_water_0
     dm_water = rho_water * area_nozzle * np.sqrt(2 * pressure / rho_water)
@@ -106,37 +106,45 @@ def run_monte_carlo(num_simulations, seed=0):
     t = m_water / dm_water
     h0 = delta_v*t - g/2*t**2 + thrust/dm_water * ((m0 - dm_water*t)/dm_water * np.log((m0 - dm_water*t)/m0) + t)
 
-    results = []
-    for _ in tqdm(range(num_simulations)):
-        # Generate initial conditions
-        # v_zero_height = 25 * m  # reference height for zero velocity calculation
-        # velocity = -np.sqrt(max(0, 2 * g * (v_zero_height - height)))
+    rng = np.random.default_rng(seed)
+    height = rng.normal(5, 1)  # height in meters
+    velocity = rng.normal(-3, 3 * 0.5)
+    y0 = np.array([height, velocity, vol_water_0, pressure])
+    params = y0, area_nozzle, m_dry, vol_total
+    return params
 
-        height = rng.normal(5, 1)  # height in meters
-        velocity = rng.normal(-delta_v, delta_v * 0.5)
-        pressure = 100 * psi
-        y0 = np.array([height, velocity, vol_water_0, pressure])
+def run_monte_carlo(num_simulations, seed=None):
+    results = []
+    rng = np.random.default_rng(seed)
+    seeds = rng.integers(low=0, high=2**32, size=num_simulations)
+    for seed in tqdm(seeds):
+        params = gen_monte_carlo_params(seed)
 
         # Simulate using the generated initial conditions
-        score, _, _ = water_rocket_simulation(y0, area_nozzle, m_dry)
-        results.append((score, y0))
+        score, _, _ = water_rocket_simulation(*params)
+        results.append((score, seed))
 
     # Sort results by score
     results.sort(key=lambda x: x[0])
     return results
 
-def run_all_single(total_sims, keep_n_best=10, seed=0):
+def run_all_single(total_sims, keep_n_best=10, seed=None):
     """Run the monte carlo simulations in single threaded"""
     results = run_monte_carlo(total_sims, seed=seed)
     results.sort(key=lambda x: x[0])
     return results[:keep_n_best]
 
-def run_all_multi(total_sims, num_cores=8, keep_n_best=10, seed=0):
+def run_all_multi(total_sims, num_cores=8, keep_n_best=10, seed=None):
     """Run the monte carlo simulations using multiprocessing pool"""
 
     batch_size = total_sims // num_cores
     num_processes = total_sims // batch_size
-    seeds = [seed + i for i in range(num_processes)]
+
+    # Initialize the random number generator with the master seed
+    rng = np.random.default_rng(seed)
+
+    # Generate unique seeds for each process from the master RNG
+    seeds = rng.integers(low=0, high=2**32, size=num_cores)
 
     with multiprocessing.Pool(processes=num_processes) as pool:
         # Each process gets batch_size simulations to run
@@ -177,21 +185,10 @@ def plot_trajectories(datas):
     plt.show()
 
 def main():
-    pressure = 100 * psi / 2
-    m_water = rho_water * vol_water_0
-    dm_water = rho_water * area_nozzle * np.sqrt(2 * pressure / rho_water)
-    thrust = dm_water * np.sqrt(2 * pressure / rho_water)
-    delta_v = thrust/dm_water * np.log( (m_dry + m_water) / m_dry ) - g * m_water/dm_water
-    m0 = m_water + m_dry 
-    t = m_water / dm_water
-    h0 = delta_v*t - g/2*t**2 + thrust/dm_water * ((m0 - dm_water*t)/dm_water * np.log((m0 - dm_water*t)/m0) + t)
-
-    print(delta_v)
-    print(h0)
 
     best_sims = run_all_multi(100_000, keep_n_best=25)
     data = [
-        water_rocket_simulation(sim[1], area_nozzle, m_dry) for sim in best_sims
+        water_rocket_simulation(*gen_monte_carlo_params(sim[1])) for sim in best_sims
     ]
     plot_trajectories(data)
 
