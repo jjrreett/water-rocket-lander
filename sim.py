@@ -53,7 +53,7 @@ def water_rocket_simulation(y0, area_nozzle, m_dry, vol_total):
         dvelocity = (thrust / (m_dry + m_water)) - g
 
 
-        return [dheight, dvelocity, dvol_water, dpressure]
+        return [dheight, dvelocity, dvol_water, 0]
 
     def hit_ground(t, y):
         return y[0]  # Ground event when height is zero
@@ -63,7 +63,7 @@ def water_rocket_simulation(y0, area_nozzle, m_dry, vol_total):
 
     sol = solve_ivp(
         update_equation,
-        [0, 5],
+        [0, 15],
         y0,
         method=RK4,
         events=hit_ground,
@@ -85,19 +85,18 @@ def water_rocket_simulation(y0, area_nozzle, m_dry, vol_total):
 
 def gen_monte_carlo_params(seed=None):
     # constant params
-    area_nozzle = 3.14 * (6 * mm) ** 2 / 4
-    vol_total = 2 * liter
+    area_nozzle = 3.14 * (5 * mm) ** 2 / 4
+    vol_total = 6 * liter
 
     # varying params
-    vol_water_0 = 1 * liter
+    vol_water_0 = 2 * liter
     m_dry = 0.5 * kg
-    pressure = 100 * psi
+    pressure = 120 * psi / 2
 
     # Generate initial conditions
     # v_zero_height = 25 * m  # reference height for zero velocity calculation
     # velocity = -np.sqrt(max(0, 2 * g * (v_zero_height - height)))
 
-    pressure = 120 * psi / 2
     m_water = rho_water * vol_water_0
     dm_water = rho_water * area_nozzle * np.sqrt(2 * pressure / rho_water)
     thrust = dm_water * np.sqrt(2 * pressure / rho_water)
@@ -107,8 +106,8 @@ def gen_monte_carlo_params(seed=None):
     h0 = delta_v*t - g/2*t**2 + thrust/dm_water * ((m0 - dm_water*t)/dm_water * np.log((m0 - dm_water*t)/m0) + t)
 
     rng = np.random.default_rng(seed)
-    height = rng.normal(5, 1)  # height in meters
-    velocity = rng.normal(-3, 3 * 0.5)
+    height = rng.normal(h0/2, 1)  # height in meters
+    velocity = rng.normal(-delta_v, delta_v * 0.5)
     y0 = np.array([height, velocity, vol_water_0, pressure])
     params = y0, area_nozzle, m_dry, vol_total
     return params
@@ -185,8 +184,32 @@ def plot_trajectories(datas):
     plt.show()
 
 def main():
+    # # constant params
+    # area_nozzle = 3.14 * (6 * mm) ** 2 / 4
+    # vol_total = 2 * liter
 
-    best_sims = run_all_multi(100_000, keep_n_best=25)
+    # # varying params
+    # vol_water_0 = 1 * liter
+    # m_dry = 0.5 * kg
+    # pressure = 120 * psi / 2
+
+    # m_water = rho_water * vol_water_0
+    # dm_water = rho_water * area_nozzle * np.sqrt(2 * pressure / rho_water)
+    # thrust = dm_water * np.sqrt(2 * pressure / rho_water)
+    # delta_v = thrust/dm_water * np.log( (m_dry + m_water) / m_dry ) - g * m_water/dm_water
+    # m0 = m_water + m_dry 
+    # t = m_water / dm_water
+
+    # h0 = delta_v*t - g/2*t**2 + thrust/dm_water * ((m0 - dm_water*t)/dm_water * np.log((m0 - dm_water*t)/m0) + t)
+
+    # print(h0)
+    # print(delta_v)
+    # print(t)
+
+    # y0 = np.array([h0/2, -delta_v, vol_water_0, pressure])
+    # data = [water_rocket_simulation(y0, area_nozzle, m_dry, vol_total)]
+
+    best_sims = run_all_multi(10_000, keep_n_best=25)
     data = [
         water_rocket_simulation(*gen_monte_carlo_params(sim[1])) for sim in best_sims
     ]
