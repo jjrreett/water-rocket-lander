@@ -5,6 +5,7 @@ from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from rich import print
 from rich.traceback import install
+from scipy.integrate import solve_ivp
 
 from unitCube import cube_faces_from_vertices, unit_cube_vertices
 
@@ -67,35 +68,81 @@ def rectangular_prism_inertia(m, vec):
     I = np.diag([Ix, Iy, Iz])  # Inertia tensor matrix
     return I
 
+def simulation(size):
+    # Initial conditions
+    mass = 0.1
+    I = rectangular_prism_inertia(mass, size)
+    initial_q = np.quaternion(1, 0, 0, 0)
+    initial_omega_body = np.array([-0.03, 10, 0.01])
+
+    # Initial state vector
+    initial_state = np.concatenate([quaternion.as_float_array(initial_q), initial_omega_body])
+
+    # Time span and time steps
+    t_span = (0, 10)
+    t_eval = np.arange(0, 10, 0.01)
+
+    # No external torque
+    torque_body = vec3(0, 0, 0)
+
+    def rigid_body_ode(t, y):
+        # y[:4] are the quaternion components
+        # y[4:] are the angular velocity components
+        q = np.quaternion(*y[:4])
+        omega_body = y[4:]
+        
+        # Compute the omega quaternion (with zero real part)
+        omega_quat = quaternion.from_float_array([0, *omega_body])
+        
+        # Quaternion derivative
+        q_dot = 0.5 * q * omega_quat
+        
+        # Angular velocity derivative
+        omega_body_dot = np.linalg.inv(I) @ (torque_body - np.cross(omega_body, I @ omega_body))
+        
+        return np.concatenate([quaternion.as_float_array(q_dot), omega_body_dot])
+    
+    # Solve the differential equations
+    result = solve_ivp(rigid_body_ode, t_span, initial_state, t_eval=t_eval, method='RK45')
+
+    # Extract the quaternions from the solution
+    quaternions = result.y[:4].T  # Transpose to get the list of quaternions
+    qs =  [quaternion.from_float_array(q) for q in quaternions]
+    return qs
+
+
 
 def main():
+    # size = vec3(0.5, 1, 2)
+    # I = rectangular_prism_inertia(0.1, size)
+
+    # # Initial quaternion (no rotation)
+    # q = np.quaternion(1, 0, 0, 0)
+
+    # # Simulation parameters
+    # dt = 0.01  # Time step
+    # time = np.arange(0, 10, dt)  # Total time of 10 seconds
+    # quaternions = [q]  # List to save quaternions
+
+    # torque_body = vec3(0, 0, 0)  # No external torque
+    # omega_body = np.array(
+    #     [-0.03, 10, 0.01]
+    # )  # Small perturbations around intermediate axis
+
+    # for t in time:
+    #     omega_body_dot = np.linalg.inv(I) @ (
+    #         torque_body - np.cross(omega_body, I @ omega_body)
+    #     )
+    #     omega_body += omega_body_dot * dt
+    #     omega_body_quad = quaternion.from_vector_part(omega_body)
+    #     q_dot = 0.5 * q * omega_body_quad
+    #     q = q + q_dot * dt
+    #     q /= np.linalg.norm(quaternion.as_float_array(q))
+    #     quaternions.append(q)
+
+    
     size = vec3(0.5, 1, 2)
-    I = rectangular_prism_inertia(0.1, size)
-
-    # Initial quaternion (no rotation)
-    q = np.quaternion(1, 0, 0, 0)
-
-    # Simulation parameters
-    dt = 0.01  # Time step
-    time = np.arange(0, 10, dt)  # Total time of 10 seconds
-    quaternions = [q]  # List to save quaternions
-
-    torque_body = vec3(0, 0, 0)  # No external torque
-    omega_body = np.array(
-        [-0.03, 10, 0.01]
-    )  # Small perturbations around intermediate axis
-
-    for t in time:
-        omega_body_dot = np.linalg.inv(I) @ (
-            torque_body - np.cross(omega_body, I @ omega_body)
-        )
-        omega_body += omega_body_dot * dt
-        omega_body_quad = quaternion.from_vector_part(omega_body)
-        q_dot = 0.5 * q * omega_body_quad
-        q = q + q_dot * dt
-        q /= np.linalg.norm(quaternion.as_float_array(q))
-        quaternions.append(q)
-
+    quaternions = simulation(size)
     animate_cube(size, quaternions, 50)
 
 
