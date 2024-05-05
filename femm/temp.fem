@@ -1,0 +1,402 @@
+[Format]      =  4.0
+[Frequency]   =  0
+[Precision]   =  1e-008
+[MinAngle]    =  30
+[DoSmartMesh] =  1
+[Depth]       =  1
+[LengthUnits] =  inches
+[ProblemType] =  axisymmetric
+[extZo] = 3.25
+[extRo] = 0.25
+[extRi] = 3
+[Coordinates] =  cartesian
+[ACSolver]    =  0
+[PrevType]    =  0
+[PrevSoln]    =  ""
+[Comment]     =  "Add comments here."
+[PointProps]   = 0
+[BdryProps]   = 0
+[BlockProps]  = 17
+  <BeginBlock>
+    <BlockName> = "Air"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 0
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 0
+    <LamFill> = 1
+    <NStrands> = 0
+    <WireD> = 0
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "Pure Iron"
+    <Mu_x> = 14872
+    <Mu_y> = 14872
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 10.44
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 0
+    <LamFill> = 1
+    <NStrands> = 0
+    <WireD> = 0
+    <BHPoints> = 21
+      0	0
+      0.22706499999999999	13.898400000000001
+      0.45412999999999998	27.796700000000001
+      0.68119499999999999	42.397399999999998
+      0.90825999999999996	61.415700000000001
+      1.13533	82.382400000000004
+      1.36239	144.66900000000001
+      1.58935	897.75999999999999
+      1.81236	4581.7399999999998
+      2.01004	17736.200000000001
+      2.1331600000000002	41339.300000000003
+      2.1999900000000001	68321.800000000003
+      2.2547899999999998	95685.5
+      2.2999299999999998	123355
+      2.3425099999999999	151083
+      2.3787600000000002	178954
+      2.4150100000000001	206825
+      2.45126	234696
+      2.4874999999999998	262568
+      2.5237500000000002	290439
+      2.5600000000000001	318310
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "10 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 2.5887801724742099
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "12 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 2.0530176819291301
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "14 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 1.62813422596841
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "16 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 1.2911827701741401
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "N42"
+    <Mu_x> = 1.05
+    <Mu_y> = 1.05
+    <H_c> = 994529
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 0.66700000000000004
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 0
+    <LamFill> = 1
+    <NStrands> = 0
+    <WireD> = 0
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "18 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 1.0239652968433499
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "20 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 0.812049969500513
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "22 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 0.64399170069399603
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "24 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 0.510714027632857
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "26 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 0.40501891210693097
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "28 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 0.32119799004660898
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "30 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 0.25472427515370799
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "32 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 0.20200766618485599
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "34 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 0.16020105336575399
+    <BHPoints> = 0
+  <EndBlock>
+  <BeginBlock>
+    <BlockName> = "36 AWG"
+    <Mu_x> = 1
+    <Mu_y> = 1
+    <H_c> = 0
+    <H_cAngle> = 0
+    <J_re> = 0
+    <J_im> = 0
+    <Sigma> = 58
+    <d_lam> = 0
+    <Phi_h> = 0
+    <Phi_hx> = 0
+    <Phi_hy> = 0
+    <LamType> = 3
+    <LamFill> = 1
+    <NStrands> = 1
+    <WireD> = 0.12704655216407401
+    <BHPoints> = 0
+  <EndBlock>
+[CircuitProps]  = 1
+  <BeginCircuit>
+    <CircuitName> = "Coil"
+    <TotalAmps_re> = 10
+    <TotalAmps_im> = 0
+    <CircuitType> = 1
+  <EndCircuit>
+[NumPoints] = 11
+0	3	0	0
+0	-3	0	0
+0	3.5	0	0
+0.5	-0.125	0	0
+0.625	-0.125	0	0
+0.625	0.125	0	0
+0.5	0.125	0	0
+0.125	-0.6875	0	0
+0.48999999999999999	-0.6875	0	0
+0.48999999999999999	-0.4375	0	0
+0.125	-0.4375	0	0
+[NumSegments] = 10
+0	2	-1	0	0	0
+0	1	-1	0	0	0
+3	4	-1	0	0	0
+4	5	-1	0	0	0
+5	6	-1	0	0	0
+6	3	-1	0	0	0
+7	8	-1	0	0	0
+8	9	-1	0	0	0
+9	10	-1	0	0	0
+10	7	-1	0	0	0
+[NumArcSegments] = 2
+1	0	180	1	0	0	0	1
+0	2	180	1	0	0	0	1
+[NumHoles] = 0
+[NumBlockLabels] = 4
+1	1.75	1	0.10000000000000001	0	0	0	1	2
+0.080000000000000002	3.2999999999999998	1	-1	0	0	0	1	0
+0.5625	0	9	0.01	1	0	0	26	0
+0.3075	-0.5625	7	0.01	0	0	0	1	0
